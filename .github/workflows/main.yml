@@ -1,0 +1,61 @@
+# https://docs.docker.com/build/ci/github-actions/multi-platform/
+name: Test, build and deploy
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+
+env:
+  REGISTRY: docker.io
+  DEPLOYMENT_NAME: gisquick.${{ github.ref_name }}
+  USER_NAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  IMAGE_NAME: gisquick-rss
+  APP_NAME: backend
+  BASE_PATH: .
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.USER_NAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=ref,event=branch
+            type=sha,format=long
+
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          platforms: linux/amd64
+          context: ./${{ env.BASE_PATH }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

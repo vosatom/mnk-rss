@@ -1,0 +1,18 @@
+baseUrl: https://localhost
+owsUrl: https://localhost/api/map/ows/demo/test
+projectUrl: https://localhost/api/map/project/demo/test
+defaultProjection: EPSG:3857
+defaultExtent: [123456, 123456, 123456, 123456]
+bookmarks:
+  group: Cities
+  defaultCity: prague
+paths:
+  /feed/test:
+    type: wfs
+    title: Test title
+    description: Test description
+    language: cs-cz
+    options:
+      title: name
+      description: desc
+      updated_at: last_modification
